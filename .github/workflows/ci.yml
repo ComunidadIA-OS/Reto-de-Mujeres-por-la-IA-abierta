@@ -1,0 +1,83 @@
+name: MigrAI CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  frontend-build:
+    name: Frontend Build & Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Se omite el job hasta que exista el proyecto frontend
+      - name: Detect frontend project
+        id: detect
+        run: |
+          if [ -f package.json ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::frontend/package.json no existe, se omiten los pasos del frontend"
+          fi
+
+      - name: Setup pnpm
+        if: steps.detect.outputs.exists == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        if: steps.detect.outputs.exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: './frontend/pnpm-lock.yaml'
+
+      - name: Install Dependencies
+        if: steps.detect.outputs.exists == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        if: steps.detect.outputs.exists == 'true'
+        run: pnpm lint
+
+      - name: Run Vitest
+        if: steps.detect.outputs.exists == 'true'
+        run: pnpm test
+
+      - name: Build JS/TS
+        if: steps.detect.outputs.exists == 'true'
+        run: pnpm build
+
+  backend-tests:
+    name: Backend Build & Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: uv sync --frozen
+
+      - name: Lint (ruff)
+        run: uv run ruff check src/ tests/ scripts/
+
+      - name: Run Pytest
+        run: uv run pytest tests/

@@ -1,0 +1,22 @@
+[project]
+name = "athenis-backend"
+version = "0.1.0"
+description = "Backend del reto Mujeres por la IA Abierta"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
